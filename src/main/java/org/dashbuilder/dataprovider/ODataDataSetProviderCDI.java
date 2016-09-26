@@ -8,19 +8,19 @@ import org.dashbuilder.DataSetCore;
 import org.dashbuilder.dataprovider.backend.odata.ODataDataSetProvider;
 
 @ApplicationScoped
-public class ODataDataSetProviderCDI extends ODataDataSetProvider {
-
+public class ODataDataSetProviderCDI extends ODataDataSetProvider 
+{
     public ODataDataSetProviderCDI() {
     }
 
     @Inject
-    public ODataDataSetProviderCDI(StaticDataSetProviderCDI staticDataSetProvider) {
-
+    public ODataDataSetProviderCDI(StaticDataSetProviderCDI staticDataSetProvider) 
+    {
         super(staticDataSetProvider,
                 DataSetCore.get().getIntervalBuilderLocator(),
                 DataSetCore.get().getIntervalBuilderDynamicDate());
     }
-
+    
     @PreDestroy
     public void destroy() {
         super.destroy();

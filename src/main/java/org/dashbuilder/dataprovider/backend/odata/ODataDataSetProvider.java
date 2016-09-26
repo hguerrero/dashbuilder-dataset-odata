@@ -20,6 +20,7 @@ import java.util.Map;
 
 import org.dashbuilder.dataprovider.DataSetProvider;
 import org.dashbuilder.dataprovider.DataSetProviderType;
+import org.dashbuilder.dataprovider.ODataProviderType;
 import org.dashbuilder.dataprovider.StaticDataSetProvider;
 import org.dashbuilder.dataset.ColumnType;
 import org.dashbuilder.dataset.DataColumn;
@@ -46,7 +47,7 @@ public class ODataDataSetProvider implements DataSetProvider
     /** Backend cache map. **/
     protected final Map<String,DataSetMetadata> _metadataMap = new HashMap<String,DataSetMetadata>();
 
-	public static final DataSetProviderType<DataSetDef> TYPE = () -> "ODATA";
+	public static final DataSetProviderType<ODataDataSetDef> TYPE = new ODataProviderType();
 	
 	private static ODataDataSetProvider SINGLETON = null;
 	
@@ -71,7 +72,7 @@ public class ODataDataSetProvider implements DataSetProvider
 	}
 
 	@Override
-	public DataSetProviderType<DataSetDef> getType() 
+	public DataSetProviderType<ODataDataSetDef> getType() 
 	{
 		return TYPE;
 	}
