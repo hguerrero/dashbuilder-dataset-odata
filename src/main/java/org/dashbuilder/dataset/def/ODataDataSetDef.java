@@ -6,7 +6,9 @@ import javax.validation.constraints.Size;
 import org.dashbuilder.dataprovider.backend.odata.ODataDataSetProvider;
 import org.dashbuilder.dataset.sort.ColumnSort;
 import org.dashbuilder.dataset.validation.groups.ODataDataSetDefValidation;
+import org.jboss.errai.common.client.api.annotations.Portable;
 
+@Portable
 public class ODataDataSetDef extends DataSetDef {
 
     // Constants.
