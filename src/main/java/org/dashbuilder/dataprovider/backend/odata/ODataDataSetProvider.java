@@ -1,66 +1,42 @@
 package org.dashbuilder.dataprovider.backend.odata;
 
-import static org.dashbuilder.dataset.date.Month.APRIL;
-import static org.dashbuilder.dataset.date.Month.AUGUST;
-import static org.dashbuilder.dataset.date.Month.DECEMBER;
-import static org.dashbuilder.dataset.date.Month.FEBRUARY;
-import static org.dashbuilder.dataset.date.Month.JANUARY;
-import static org.dashbuilder.dataset.date.Month.JULY;
-import static org.dashbuilder.dataset.date.Month.JUNE;
-import static org.dashbuilder.dataset.date.Month.MARCH;
-import static org.dashbuilder.dataset.date.Month.MAY;
-import static org.dashbuilder.dataset.date.Month.NOVEMBER;
-import static org.dashbuilder.dataset.date.Month.OCTOBER;
-import static org.dashbuilder.dataset.date.Month.SEPTEMBER;
-
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
+import org.apache.olingo.client.api.domain.ClientEntity;
+import org.apache.olingo.client.api.domain.ClientEntitySet;
+import org.apache.olingo.client.api.domain.ClientPrimitiveValue;
+import org.apache.olingo.client.api.domain.ClientProperty;
+import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeException;
 import org.dashbuilder.dataprovider.DataSetProvider;
 import org.dashbuilder.dataprovider.DataSetProviderType;
-import org.dashbuilder.dataprovider.ODataProviderType;
-import org.dashbuilder.dataprovider.StaticDataSetProvider;
+import org.dashbuilder.dataprovider.DefaultProviderType;
+import org.dashbuilder.dataprovider.backend.odata.olingo.OlingoODataClient;
 import org.dashbuilder.dataset.ColumnType;
 import org.dashbuilder.dataset.DataColumn;
 import org.dashbuilder.dataset.DataSet;
 import org.dashbuilder.dataset.DataSetFactory;
 import org.dashbuilder.dataset.DataSetLookup;
 import org.dashbuilder.dataset.DataSetMetadata;
-import org.dashbuilder.dataset.IntervalBuilderDynamicDate;
 import org.dashbuilder.dataset.def.DataSetDef;
-import org.dashbuilder.dataset.def.ODataDataSetDef;
-import org.dashbuilder.dataset.engine.group.IntervalBuilderLocator;
+import org.dashbuilder.dataset.def.DataSetDefRegistryListener;
 import org.dashbuilder.dataset.filter.DataSetFilter;
 import org.dashbuilder.dataset.impl.DataColumnImpl;
+import org.dashbuilder.dataset.impl.DataSetMetadataImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ODataDataSetProvider implements DataSetProvider
+import com.google.common.collect.Lists;
+
+public class ODataDataSetProvider implements DataSetProvider, DataSetDefRegistryListener
 {
 	protected Logger log = LoggerFactory.getLogger(ODataDataSetProvider.class);
-    protected StaticDataSetProvider staticDataSetProvider;
-    protected IntervalBuilderLocator intervalBuilderLocator;
-    protected IntervalBuilderDynamicDate intervalBuilderDynamicDate;
-	
-    /** Backend cache map. **/
-    protected final Map<String,DataSetMetadata> _metadataMap = new HashMap<String,DataSetMetadata>();
 
-	public static final DataSetProviderType<ODataDataSetDef> TYPE = new ODataProviderType();
+	public static final DataSetProviderType<DataSetDef> TYPE = new DefaultProviderType("ODATA");
 	
 	private static ODataDataSetProvider SINGLETON = null;
 	
     public ODataDataSetProvider() {
-    }
-
-    public ODataDataSetProvider(StaticDataSetProvider staticDataSetProvider,
-                                        IntervalBuilderLocator intervalBuilderLocator,
-                                        IntervalBuilderDynamicDate intervalBuilderDynamicDate) {
-
-        this.staticDataSetProvider = staticDataSetProvider;
-        this.intervalBuilderLocator = intervalBuilderLocator;
-        this.intervalBuilderDynamicDate = intervalBuilderDynamicDate;
     }
 
 	public static ODataDataSetProvider get() 
@@ -72,7 +48,7 @@ public class ODataDataSetProvider implements DataSetProvider
 	}
 
 	@Override
-	public DataSetProviderType<ODataDataSetDef> getType() 
+	public DataSetProviderType<DataSetDef> getType() 
 	{
 		return TYPE;
 	}
@@ -80,20 +56,25 @@ public class ODataDataSetProvider implements DataSetProvider
 	@Override
 	public DataSetMetadata getDataSetMetadata(DataSetDef def) throws Exception 
 	{
-		DataSet dataSet = lookupDataSet(def, null);
-        if (dataSet == null) {
-            return null;
-        }
-        return dataSet.getMetadata();
+		return new DataSetMetadataImpl(
+				def, "myProvider", 10, 3, 
+				Lists.newArrayList("level","time","thread"), 
+				Lists.newArrayList(ColumnType.LABEL,ColumnType.LABEL,ColumnType.LABEL), 3);
+//		DataSet dataSet = lookupDataSet(def, null);
+//        if (dataSet == null) {
+//            return null;
+//        }
+//        return dataSet.getMetadata();
 	}
 
 	@Override
 	public DataSet lookupDataSet(DataSetDef def, DataSetLookup lookup) throws Exception 
 	{
-		ODataDataSetDef odDef = (ODataDataSetDef)def;
+		final boolean isTestMode = lookup != null && lookup.testMode();
+        DataSetMetadata metadata = (DataSetMetadata) getDataSetMetadata(def, isTestMode);
 		
 		// Add the data set filter specified in the definition, if any.
-        DataSetFilter dataSetFilter = odDef.getDataSetFilter();
+        DataSetFilter dataSetFilter = def.getDataSetFilter();
         if (dataSetFilter != null) {
             lookup.addOperation(dataSetFilter);
         }
@@ -101,49 +82,92 @@ public class ODataDataSetProvider implements DataSetProvider
         List<DataColumn> columns = new ArrayList<DataColumn>();
         
         columns.add(new DataColumnImpl("level", ColumnType.LABEL));
+        columns.add(new DataColumnImpl("time", ColumnType.LABEL));
+        columns.add(new DataColumnImpl("thread", ColumnType.LABEL));
 		
-//		DataSet dataSet = DataSetFactory.newEmptyDataSet();
-//		
-//		dataSet.setColumns(columns);
+        // Perform the query & generate the resulting dataset.
+        DataSet dataSet = DataSetFactory.newEmptyDataSet();
+        dataSet.setColumns(columns);
         
-        DataSet dataSet = DataSetFactory.newDataSetBuilder()
-		        .label("month")
-		        .number("2012")
-		        .number("2013")
-		        .number("2014")
-		        .row(JANUARY, 1000d, 2000d, 3000d)
-		        .row(FEBRUARY, 1400d, 2300d, 2000d)
-		        .row(MARCH, 1300d, 2000d, 1400d)
-		        .row(APRIL, 900d, 2100d, 1500d)
-		        .row(MAY, 1300d, 2300d, 1600d)
-		        .row(JUNE, 1010d, 2000d, 1500d)
-		        .row(JULY, 1050d, 2400d, 3000d)
-		        .row(AUGUST, 2300d, 2000d, 3200d)
-		        .row(SEPTEMBER, 1900d, 2700d, 3000d)
-		        .row(OCTOBER, 1200d, 2200d, 3100d)
-		        .row(NOVEMBER, 1400d, 2100d, 3100d)
-		        .row(DECEMBER, 1100d, 2100d, 4200d)
-		        .buildDataSet();
+        OlingoODataClient client = new OlingoODataClient(def);
+        ClientEntitySet searchResponse = client.search(def, metadata);//, request);
+        
+        dataSet.setUUID(def.getUUID());
+
+        // If there are no results, return an empty data set.
+//        if (searchResponse.getCount() != null && searchResponse.getCount() == 0) return dataSet;
+        
+        // There exist values. Populate the data set.
+        fillDataSetValues(def, dataSet, searchResponse.getEntities());
         
 		return dataSet;
 	}
 	
+	/**
+     * Fills the dataset values.
+     *
+     * @param dataSet The dataset instance to fill. Note that dataset columns must be added before calling this method.
+     * @param entities The search result entities.
+     *
+     * @throws Exception
+     */
+	private void fillDataSetValues(DataSetDef def, DataSet dataSet, List<ClientEntity> entities) 
+	{
+		List<DataColumn> dataSetColumns = dataSet.getColumns();
+        int position = 0;
+        for (ClientEntity entity : entities) 
+		{
+        	int columnNumber = 0;
+            for (DataColumn column : dataSetColumns) {
+                String columnId = column.getId();
+                ClientProperty property = entity.getProperty(columnId);
+                ClientPrimitiveValue value = property.getPrimitiveValue();
+                try {
+					dataSet.setValueAt(position, columnNumber, value.toCastValue(String.class));
+				} catch (EdmPrimitiveTypeException e) {
+					log.warn("Couldn't cast to String.class, retracting to toString()");
+					log.debug("Error while trying to cast to String", e);
+				}
+                columnNumber++;
+            }
+            position++;
+		}
+	}
+
+	private DataSetMetadata getDataSetMetadata(DataSetDef def, boolean isTestMode) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 	@Override
 	public boolean isDataSetOutdated(DataSetDef def) {
 		return false;
 	}
 	
-    protected void remove(final String uuid) {
-        _metadataMap.remove(uuid);
-//        destroyClient(uuid);
-        staticDataSetProvider.removeDataSet(uuid);
+	// Listen to changes on the data set definition registry, like for instance, when a dataset definition
+    // is registered, removed, or updated.
+
+    public void onDataSetDefStale(DataSetDef def) {
+        if (this.getType().equals(def.getProvider())) {
+            // Add your own logic in case you are interested in this type of events ...
+        }
     }
 
-    public void destroy() {
-        // Destroy all clients.
-//        for (ElasticSearchClient client : _clientsMap.values()) {
-//            destroyClient(client);
-//        }
+    public void onDataSetDefModified(DataSetDef olDef, DataSetDef newDef) {
+        if (this.getType().equals(olDef.getProvider())) {
+            // Add your own logic in case you are interested in this type of events ...
+        }
     }
 
+    public void onDataSetDefRemoved(DataSetDef oldDef) {
+        if (this.getType().equals(oldDef.getProvider())) {
+            // Add your own logic in case you are interested in this type of events ...
+        }
+    }
+
+    public void onDataSetDefRegistered(DataSetDef newDef) {
+        if (this.getType().equals(newDef.getProvider())) {
+            // Add your own logic in case you are interested in this type of events ...
+        }
+    }
 }

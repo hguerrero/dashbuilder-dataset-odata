@@ -13,6 +13,7 @@ public class ODataDataSetDef extends DataSetDef {
 
     // Constants.
 
+	@Portable
     public static enum ODataKeywords {
         ALL;
 

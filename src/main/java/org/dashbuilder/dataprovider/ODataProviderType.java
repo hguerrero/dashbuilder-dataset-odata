@@ -1,11 +1,11 @@
 package org.dashbuilder.dataprovider;
 
 import org.dashbuilder.dataset.def.ODataDataSetDef;
-import org.dashbuilder.dataset.json.DataSetDefJSONMarshallerExt;
-import org.dashbuilder.dataset.json.ODataDefJSONMarshaller;
+import org.jboss.errai.common.client.api.annotations.Portable;
 
-public class ODataProviderType extends AbstractProviderType<ODataDataSetDef>{
-
+@Portable
+public class ODataProviderType extends DefaultProviderType
+{
 	@Override
 	public String getName() {
 		return "ODATA";
@@ -16,9 +16,9 @@ public class ODataProviderType extends AbstractProviderType<ODataDataSetDef>{
 		return new ODataDataSetDef();
 	}
 	
-	@Override
-	public DataSetDefJSONMarshallerExt<ODataDataSetDef> getJsonMarshaller() {
-		return ODataDefJSONMarshaller.INSTANCE;
-	}
+//	@Override
+//	public DataSetDefJSONMarshallerExt<DataSetDef> getJsonMarshaller() {
+//		return ODataDefJSONMarshaller.INSTANCE;
+//	}
 
 }
