@@ -1,6 +1,7 @@
 package org.dashbuilder.dataprovider.backend.odata;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.apache.olingo.client.api.domain.ClientEntity;
@@ -26,11 +27,9 @@ import org.dashbuilder.dataset.impl.DataSetMetadataImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Lists;
-
 public class ODataDataSetProvider implements DataSetProvider, DataSetDefRegistryListener
 {
-	protected Logger log = LoggerFactory.getLogger(ODataDataSetProvider.class);
+	protected Logger logger = LoggerFactory.getLogger(ODataDataSetProvider.class);
 
 	public static final DataSetProviderType<DataSetDef> TYPE = new DefaultProviderType("ODATA");
 	
@@ -58,8 +57,8 @@ public class ODataDataSetProvider implements DataSetProvider, DataSetDefRegistry
 	{
 		return new DataSetMetadataImpl(
 				def, "myProvider", 10, 3, 
-				Lists.newArrayList("level","time","thread"), 
-				Lists.newArrayList(ColumnType.LABEL,ColumnType.LABEL,ColumnType.LABEL), 3);
+				Arrays.asList("level","time","thread"), 
+				Arrays.asList(ColumnType.LABEL,ColumnType.LABEL,ColumnType.LABEL), 3);
 //		DataSet dataSet = lookupDataSet(def, null);
 //        if (dataSet == null) {
 //            return null;
@@ -95,6 +94,7 @@ public class ODataDataSetProvider implements DataSetProvider, DataSetDefRegistry
         dataSet.setUUID(def.getUUID());
 
         // If there are no results, return an empty data set.
+        // TODO Not implemented
 //        if (searchResponse.getCount() != null && searchResponse.getCount() == 0) return dataSet;
         
         // There exist values. Populate the data set.
@@ -125,8 +125,8 @@ public class ODataDataSetProvider implements DataSetProvider, DataSetDefRegistry
                 try {
 					dataSet.setValueAt(position, columnNumber, value.toCastValue(String.class));
 				} catch (EdmPrimitiveTypeException e) {
-					log.warn("Couldn't cast to String.class, retracting to toString()");
-					log.debug("Error while trying to cast to String", e);
+					logger.warn("Couldn't cast to String.class, retracting to toString()");
+					logger.debug("Error while trying to cast to String", e);
 				}
                 columnNumber++;
             }
