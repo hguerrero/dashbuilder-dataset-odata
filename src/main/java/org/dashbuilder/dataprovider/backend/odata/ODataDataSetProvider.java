@@ -89,7 +89,7 @@ public class ODataDataSetProvider implements DataSetProvider, DataSetDefRegistry
         dataSet.setColumns(columns);
         
         OlingoODataClient client = new OlingoODataClient(def);
-        ClientEntitySet searchResponse = client.search(def, metadata);//, request);
+        ClientEntitySet searchResponse = client.search(def, metadata, lookup);//, request);
         
         dataSet.setUUID(def.getUUID());
 

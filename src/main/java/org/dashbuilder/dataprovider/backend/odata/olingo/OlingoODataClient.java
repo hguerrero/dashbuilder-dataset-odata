@@ -13,8 +13,13 @@ import org.apache.olingo.client.api.domain.ClientValue;
 import org.apache.olingo.client.api.uri.URIBuilder;
 import org.apache.olingo.client.core.ODataClientFactory;
 import org.dashbuilder.dataprovider.backend.odata.exception.ODataClientGenericException;
+import org.dashbuilder.dataset.DataSetLookup;
 import org.dashbuilder.dataset.DataSetMetadata;
 import org.dashbuilder.dataset.def.DataSetDef;
+import org.dashbuilder.dataset.filter.ColumnFilter;
+import org.dashbuilder.dataset.filter.CoreFunctionFilter;
+import org.dashbuilder.dataset.filter.CoreFunctionType;
+import org.dashbuilder.dataset.filter.DataSetFilter;
 
 public class OlingoODataClient 
 {
@@ -31,7 +36,7 @@ public class OlingoODataClient
 		this.segmentValue = odDef.getProperty("segmentValue"); 
 	}
 
-	public ClientEntitySet search(DataSetDef definition, DataSetMetadata metadata)
+	public ClientEntitySet search(DataSetDef definition, DataSetMetadata metadata, DataSetLookup lookup)
 			throws ODataClientGenericException 
 	{
 		checkClient();
@@ -42,9 +47,36 @@ public class OlingoODataClient
 
 		builder.appendEntitySetSegment(segmentValue);// "odataCache_get")
 
-		String filter = "level eq 'ERROR'";
+        // Filter operations.
+        List<DataSetFilter> filters = lookup.getOperationList(DataSetFilter.class);
+        if (filters != null && !filters.isEmpty()) {
+            // Check columns for the filter operations.
+            for (DataSetFilter filterOp  : filters) {
+                List<ColumnFilter> columnFilters = filterOp.getColumnFilterList();
+                if (columnFilters != null && !columnFilters.isEmpty()) {
+                    for (ColumnFilter filter: columnFilters) {
+//                        String fcId = filter.getColumnId();
+                        //TODO assuming column is available
+//                        if (fcId != null && !existColumn(metadata, fcId)) throw new IllegalArgumentException("Filtering by a non existing column [" + fcId + IN_DATASET);
+                        // Core functions.
+                        if (filter instanceof CoreFunctionFilter) {
+                            String result = buildColumnCoreFunctionFilter((CoreFunctionFilter) filter, metadata);
+                            builder.filter(result);
+                        }
+                    }
+                }
+            }
+        }
 
-		builder.filter(filter);
+		// Pagination constraints.
+		if (lookup != null) {
+			int numRows = lookup.getNumberOfRows(); 
+			if (numRows > 0) {
+				builder.top(lookup.getNumberOfRows());
+			}
+			int rowOffset = lookup.getRowOffset();
+			builder.skip(rowOffset);
+		}
 
 		// Perform the query to the OData server instance.
 		ODataRetrieveResponse<ClientEntitySet> response = client.getRetrieveRequestFactory()
@@ -57,6 +89,26 @@ public class OlingoODataClient
 		return entitySet;
 	}
 	
+	private String buildColumnCoreFunctionFilter(CoreFunctionFilter filter, DataSetMetadata metadata) {
+		String columnId = filter.getColumnId();		
+//		ColumnType columnType = metadata.getColumnType(columnId);
+		
+		CoreFunctionType type = filter.getType();
+        List<?> params = filter.getParameters();
+        
+        String strFilter = null;
+        
+        if (CoreFunctionType.EQUALS_TO.equals(type)) {
+        	
+        	strFilter = String.format("%s eq '%s'", columnId, params.get(0));
+        	
+        } else {
+            throw new IllegalArgumentException("Core function type not supported: " + type);
+        }
+        
+		return strFilter;
+	}
+
 	private void checkClient() throws ODataClientGenericException 
 	{
         if ( null == client ) 

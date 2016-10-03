@@ -15,10 +15,10 @@ package org.dashbuilder.dataprovider.backend.odata;
 */
 
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.verify;
+import static org.dashbuilder.dataset.filter.FilterFactory.*;
+import static org.dashbuilder.dataset.group.AggregateFunctionType.*;
+import static org.junit.Assert.*;
+import static org.mockito.Mockito.*;
 
 import org.dashbuilder.DataSetCore;
 import org.dashbuilder.dataprovider.DataSetProviderRegistry;
@@ -64,8 +64,9 @@ public class ODataDataSetTest
         dataSetProviderRegistry.registerDataProvider(odataDataSetProvider);
 
         odataDef.setProvider(odataDataSetProvider.getType());
-        odataDef.setProperty("prop1", "hello");
-        odataDef.setProperty("prop2", "world");
+        odataDef.setProperty("serverURL", "http://localhost:8887");
+        odataDef.setProperty("serviceName", "ODataInfinispanEndpoint.svc");
+        odataDef.setProperty("segmentValue", "odataCache_get");
         odataDef.setUUID("test");
         
         dataSetDefRegistry.registerDataSetDef(odataDef);
@@ -83,8 +84,8 @@ public class ODataDataSetTest
     public void testJson() throws Exception 
     {
         String json = jsonMarshaller.toJsonString(odataDef);
-        assertTrue(json.contains("\"prop1\": \"hello\""));
-        assertTrue(json.contains("\"prop2\": \"world\""));
+        assertTrue(json.contains("\"serviceName\": \"ODataInfinispanEndpoint.svc\""));
+        assertTrue(json.contains("\"segmentValue\": \"odataCache_get\""));
     }
 
     @Test
@@ -94,23 +95,25 @@ public class ODataDataSetTest
 
         verify(odataDataSetProvider).getDataSetMetadata(odataDef);
         
-        assertEquals(medatata.getNumberOfColumns(), 2);
-        assertEquals(medatata.getColumnId(0), "prop1");
-        assertEquals(medatata.getColumnId(1), "prop2");
+        assertEquals(medatata.getNumberOfColumns(), 3);
+//        assertEquals(medatata.getColumnId(0), "prop1");
+//        assertEquals(medatata.getColumnId(1), "prop2");
     }
 
     @Test
-    public void testLookup() throws Exception 
+    public void testDataSetLookup() throws Exception 
     {
-        DataSetLookup lookup = DataSetLookupFactory
-                .newDataSetLookupBuilder().dataset("test")
+        DataSetLookup lookup = DataSetLookupFactory.newDataSetLookupBuilder()
+        		.dataset("test")
+        		.filter("level", equalsTo("WARN"))
+        		.column(COUNT, "result")
                 .buildLookup();
 
         DataSet dataSet = dataSetManager.lookupDataSet(lookup);
 
         verify(odataDataSetProvider).lookupDataSet(odataDef, lookup);
-        assertEquals(dataSet.getRowCount(), 1);
-        assertEquals(dataSet.getValueAt(0, 0), "hello");
-        assertEquals(dataSet.getValueAt(0, 1), "world");
+        assertEquals(dataSet.getRowCount(), 16);
+//        assertEquals(dataSet.getValueAt(0, 0), "hello");
+//        assertEquals(dataSet.getValueAt(0, 1), "world");
    }
 }
